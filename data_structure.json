@@ -1,0 +1,53 @@
+{
+    "images": [
+        {
+            "file_name": "038654.png",
+            "height": 1080,
+            "width": 1920,
+            "id": 38654
+        },
+        {
+            "file_name": "038655.png",
+            "height": 1080,
+            "width": 1920,
+            "id": 38655
+        }
+    ],
+    "annotations": [
+        {
+            "id": 1,
+            "image_id": 38654,
+            "category_id": 1,
+            "bbox": [
+                893,
+                540,
+                35,
+                38
+            ],
+            "area": 1338,
+            "iscrowd": 0,
+            "segmentation": []
+        },
+        {
+            "id": 2,
+            "image_id": 38654,
+            "category_id": 1,
+            "bbox": [
+                600,
+                400,
+                50,
+                60
+            ],
+            "area": 3000,
+            "iscrowd": 0,
+            "segmentation": []
+        }
+    ],
+    "categories": [
+        {
+            "id": 1,
+            "name": "car",
+            "supercategory": "vehicle"
+        }
+    ]
+}
