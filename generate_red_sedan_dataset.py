@@ -56,6 +56,327 @@ DISTRACTOR_COLORS = [
     "64,64,64",     # Dark gray
 ]
 
+# Non-sedan blueprints for same-color-different-class scenario
+NON_SEDAN_BLUEPRINTS = [
+    "vehicle.nissan.patrol_2021",
+    "vehicle.dodge.charger_2020",
+    "vehicle.jeep.wrangler_rubicon",
+    "vehicle.chevrolet.impala",
+    "vehicle.lincoln.mkz_2020",
+    "vehicle.mini.cooper_s_2021",
+]
+
+# Colors easily confused with target red
+CONFUSABLE_COLORS = [
+    "200,100,0",   # Orange
+    "130,0,0",     # Maroon
+    "150,20,20",   # Dark red
+]
+
+# 17 evaluation scenarios
+EVAL_SCENARIO_CONFIGS = [
+    # --- Weather variations ---
+    {
+        "name": "clear_day_baseline",
+        "scenario_id": 1,
+        "description": "Explicit clear sky with high sun — static camera, target drives through",
+        "map": "Town10HD_Opt",
+        "weather": {"cloudiness": 0, "precipitation": 0, "sun_altitude_angle": 60,
+                     "sun_azimuth_angle": 220, "fog_density": 0, "wetness": 0,
+                     "precipitation_deposits": 0, "wind_intensity": 10},
+        "num_distractors": 10,
+        "num_targets": 1,
+        "distractor_colors": None,
+        "distractor_blueprints": None,
+        "distractor_use_target_color": False,
+        "camera_mode": "static",
+        "num_frames": 800,
+        "camera": {"height_offset": 12.0, "follow_distance": 20.0, "pitch": -15.0, "lateral_offset": 0.0},
+        "seed": 100,
+    },
+    {
+        "name": "overcast",
+        "scenario_id": 2,
+        "description": "Heavy cloud cover with flat diffuse light — static camera",
+        "map": "Town10HD_Opt",
+        "weather": {"cloudiness": 90, "precipitation": 0, "sun_altitude_angle": 45,
+                     "sun_azimuth_angle": 220, "fog_density": 0, "wetness": 0,
+                     "precipitation_deposits": 0, "wind_intensity": 30},
+        "num_distractors": 10,
+        "num_targets": 1,
+        "distractor_colors": None,
+        "distractor_blueprints": None,
+        "distractor_use_target_color": False,
+        "camera_mode": "static",
+        "num_frames": 800,
+        "camera": {"height_offset": 12.0, "follow_distance": 20.0, "pitch": -15.0, "lateral_offset": 0.0},
+        "seed": 200,
+    },
+    {
+        "name": "heavy_rain",
+        "scenario_id": 3,
+        "description": "Heavy precipitation with wet roads — loose follow, target drifts in/out of FOV",
+        "map": "Town10HD_Opt",
+        "weather": {"cloudiness": 80, "precipitation": 80, "sun_altitude_angle": 40,
+                     "sun_azimuth_angle": 220, "fog_density": 10, "wetness": 100,
+                     "precipitation_deposits": 80, "wind_intensity": 50},
+        "num_distractors": 10,
+        "num_targets": 1,
+        "distractor_colors": None,
+        "distractor_blueprints": None,
+        "distractor_use_target_color": False,
+        "camera_mode": "loose_follow",
+        "num_frames": 800,
+        "camera": {"height_offset": 12.0, "follow_distance": 20.0, "pitch": -15.0, "lateral_offset": 0.0,
+                    "loose_follow_lag": 40},
+        "seed": 300,
+    },
+    {
+        "name": "dusk_golden_hour",
+        "scenario_id": 4,
+        "description": "Low sun angle with long shadows — loose follow",
+        "map": "Town10HD_Opt",
+        "weather": {"cloudiness": 20, "precipitation": 0, "sun_altitude_angle": 15,
+                     "sun_azimuth_angle": 280, "fog_density": 0, "wetness": 0,
+                     "precipitation_deposits": 0, "wind_intensity": 10},
+        "num_distractors": 10,
+        "num_targets": 1,
+        "distractor_colors": None,
+        "distractor_blueprints": None,
+        "distractor_use_target_color": False,
+        "camera_mode": "loose_follow",
+        "num_frames": 800,
+        "camera": {"height_offset": 12.0, "follow_distance": 20.0, "pitch": -15.0, "lateral_offset": 0.0,
+                    "loose_follow_lag": 40},
+        "seed": 400,
+    },
+    {
+        "name": "night",
+        "scenario_id": 5,
+        "description": "Nighttime with streetlights only — loose follow",
+        "map": "Town10HD_Opt",
+        "weather": {"cloudiness": 50, "precipitation": 0, "sun_altitude_angle": -30,
+                     "sun_azimuth_angle": 220, "fog_density": 0, "wetness": 0,
+                     "precipitation_deposits": 0, "wind_intensity": 10},
+        "num_distractors": 10,
+        "num_targets": 1,
+        "distractor_colors": None,
+        "distractor_blueprints": None,
+        "distractor_use_target_color": False,
+        "camera_mode": "loose_follow",
+        "num_frames": 800,
+        "camera": {"height_offset": 12.0, "follow_distance": 20.0, "pitch": -15.0, "lateral_offset": 0.0,
+                    "loose_follow_lag": 40},
+        "seed": 500,
+    },
+    {
+        "name": "dense_fog",
+        "scenario_id": 6,
+        "description": "Dense fog with short visibility — loose follow",
+        "map": "Town10HD_Opt",
+        "weather": {"cloudiness": 60, "precipitation": 0, "sun_altitude_angle": 45,
+                     "sun_azimuth_angle": 220, "fog_density": 70, "fog_distance": 10,
+                     "wetness": 30, "precipitation_deposits": 0, "wind_intensity": 5},
+        "num_distractors": 10,
+        "num_targets": 1,
+        "distractor_colors": None,
+        "distractor_blueprints": None,
+        "distractor_use_target_color": False,
+        "camera_mode": "loose_follow",
+        "num_frames": 800,
+        "camera": {"height_offset": 12.0, "follow_distance": 20.0, "pitch": -15.0, "lateral_offset": 0.0,
+                    "loose_follow_lag": 40},
+        "seed": 600,
+    },
+    # --- Distractor variations ---
+    {
+        "name": "color_confusable",
+        "scenario_id": 7,
+        "description": "Orange/maroon/dark-red distractors — loose follow",
+        "map": "Town10HD_Opt",
+        "weather": None,
+        "num_distractors": 10,
+        "num_targets": 1,
+        "distractor_colors": ["200,100,0", "130,0,0", "150,20,20"],
+        "distractor_blueprints": None,
+        "distractor_use_target_color": False,
+        "camera_mode": "loose_follow",
+        "num_frames": 800,
+        "camera": {"height_offset": 12.0, "follow_distance": 20.0, "pitch": -15.0, "lateral_offset": 0.0,
+                    "loose_follow_lag": 40},
+        "seed": 700,
+    },
+    {
+        "name": "same_color_diff_class",
+        "scenario_id": 8,
+        "description": "Red SUVs/trucks as distractors — loose follow",
+        "map": "Town10HD_Opt",
+        "weather": None,
+        "num_distractors": 10,
+        "num_targets": 1,
+        "distractor_colors": None,
+        "distractor_blueprints": ["vehicle.nissan.patrol_2021", "vehicle.dodge.charger_2020",
+                                   "vehicle.jeep.wrangler_rubicon", "vehicle.chevrolet.impala",
+                                   "vehicle.lincoln.mkz_2020", "vehicle.mini.cooper_s_2021"],
+        "distractor_use_target_color": True,
+        "camera_mode": "loose_follow",
+        "num_frames": 800,
+        "camera": {"height_offset": 12.0, "follow_distance": 20.0, "pitch": -15.0, "lateral_offset": 0.0,
+                    "loose_follow_lag": 40},
+        "seed": 800,
+    },
+    {
+        "name": "high_density",
+        "scenario_id": 9,
+        "description": "25 distractor vehicles — static camera, crowded scene",
+        "map": "Town10HD_Opt",
+        "weather": None,
+        "num_distractors": 25,
+        "num_targets": 1,
+        "distractor_colors": None,
+        "distractor_blueprints": None,
+        "distractor_use_target_color": False,
+        "camera_mode": "static",
+        "num_frames": 800,
+        "camera": {"height_offset": 12.0, "follow_distance": 20.0, "pitch": -15.0, "lateral_offset": 0.0},
+        "seed": 900,
+    },
+    # --- Camera variations ---
+    {
+        "name": "high_altitude",
+        "scenario_id": 10,
+        "description": "Camera at 25m height — static, wide overhead view",
+        "map": "Town10HD_Opt",
+        "weather": None,
+        "num_distractors": 10,
+        "num_targets": 1,
+        "distractor_colors": None,
+        "distractor_blueprints": None,
+        "distractor_use_target_color": False,
+        "camera_mode": "static",
+        "num_frames": 800,
+        "camera": {"height_offset": 25.0, "follow_distance": 30.0, "pitch": -15.0, "lateral_offset": 0.0},
+        "seed": 1000,
+    },
+    {
+        "name": "low_altitude_steep",
+        "scenario_id": 11,
+        "description": "Camera at 6m, steep -40 pitch — loose follow, street-level view",
+        "map": "Town10HD_Opt",
+        "weather": None,
+        "num_distractors": 10,
+        "num_targets": 1,
+        "distractor_colors": None,
+        "distractor_blueprints": None,
+        "distractor_use_target_color": False,
+        "camera_mode": "loose_follow",
+        "num_frames": 800,
+        "camera": {"height_offset": 6.0, "follow_distance": 20.0, "pitch": -40.0, "lateral_offset": 0.0,
+                    "loose_follow_lag": 30},
+        "seed": 1100,
+    },
+    {
+        "name": "side_follow",
+        "scenario_id": 12,
+        "description": "Camera with 8m lateral offset — loose follow, side perspective",
+        "map": "Town10HD_Opt",
+        "weather": None,
+        "num_distractors": 10,
+        "num_targets": 1,
+        "distractor_colors": None,
+        "distractor_blueprints": None,
+        "distractor_use_target_color": False,
+        "camera_mode": "loose_follow",
+        "num_frames": 800,
+        "camera": {"height_offset": 12.0, "follow_distance": 20.0, "pitch": -15.0, "lateral_offset": 8.0,
+                    "loose_follow_lag": 30},
+        "seed": 1200,
+    },
+    # --- Map variations ---
+    {
+        "name": "town03_suburban",
+        "scenario_id": 13,
+        "description": "Suburban layout with Town03 — static camera",
+        "map": "Town03",
+        "weather": None,
+        "num_distractors": 10,
+        "num_targets": 1,
+        "distractor_colors": None,
+        "distractor_blueprints": None,
+        "distractor_use_target_color": False,
+        "camera_mode": "static",
+        "num_frames": 800,
+        "camera": {"height_offset": 12.0, "follow_distance": 20.0, "pitch": -15.0, "lateral_offset": 0.0},
+        "seed": 1300,
+    },
+    {
+        "name": "town05_highway",
+        "scenario_id": 14,
+        "description": "Multi-lane highway Town05 — loose follow",
+        "map": "Town05",
+        "weather": None,
+        "num_distractors": 10,
+        "num_targets": 1,
+        "distractor_colors": None,
+        "distractor_blueprints": None,
+        "distractor_use_target_color": False,
+        "camera_mode": "loose_follow",
+        "num_frames": 800,
+        "camera": {"height_offset": 12.0, "follow_distance": 20.0, "pitch": -15.0, "lateral_offset": 0.0,
+                    "loose_follow_lag": 40},
+        "seed": 1400,
+    },
+    # --- Edge cases ---
+    {
+        "name": "multiple_red_sedans",
+        "scenario_id": 15,
+        "description": "3 red sedan targets — static camera, multi-target detection",
+        "map": "Town10HD_Opt",
+        "weather": None,
+        "num_distractors": 10,
+        "num_targets": 3,
+        "distractor_colors": None,
+        "distractor_blueprints": None,
+        "distractor_use_target_color": False,
+        "camera_mode": "static",
+        "num_frames": 800,
+        "camera": {"height_offset": 12.0, "follow_distance": 20.0, "pitch": -15.0, "lateral_offset": 0.0},
+        "seed": 1500,
+    },
+    {
+        "name": "long_sequence",
+        "scenario_id": 16,
+        "description": "Extended 1500-frame sequence — static camera, tests reappearance",
+        "map": "Town10HD_Opt",
+        "weather": None,
+        "num_distractors": 10,
+        "num_targets": 1,
+        "distractor_colors": None,
+        "distractor_blueprints": None,
+        "distractor_use_target_color": False,
+        "camera_mode": "static",
+        "num_frames": 1500,
+        "camera": {"height_offset": 12.0, "follow_distance": 20.0, "pitch": -15.0, "lateral_offset": 0.0},
+        "seed": 1600,
+    },
+    {
+        "name": "dense_urban_traffic",
+        "scenario_id": 17,
+        "description": "Dense urban with 20 distractors — static camera, frequent stops",
+        "map": "Town10HD_Opt",
+        "weather": None,
+        "num_distractors": 20,
+        "num_targets": 1,
+        "distractor_colors": None,
+        "distractor_blueprints": None,
+        "distractor_use_target_color": False,
+        "camera_mode": "static",
+        "num_frames": 800,
+        "camera": {"height_offset": 12.0, "follow_distance": 20.0, "pitch": -15.0, "lateral_offset": 0.0},
+        "seed": 1700,
+    },
+]
+
 # Camera attributes
 CAMERA_WIDTH = 1920
 CAMERA_HEIGHT = 1080
@@ -270,7 +591,8 @@ def create_camera_transform_from_spawn(spawn_point, height_offset=CAMERA_HEIGHT_
 
 
 def compute_drone_follow_transform(target_transform, height_offset=CAMERA_HEIGHT_OFFSET,
-                                   follow_distance=20.0, pitch=CAMERA_PITCH):
+                                   follow_distance=20.0, pitch=CAMERA_PITCH,
+                                   lateral_offset=0.0):
     """
     Compute camera transform for drone-style following of target.
 
@@ -281,6 +603,7 @@ def compute_drone_follow_transform(target_transform, height_offset=CAMERA_HEIGHT
         height_offset: Height above target
         follow_distance: Distance behind target (along its backward direction)
         pitch: Camera pitch angle
+        lateral_offset: Perpendicular offset to the right of the target (meters)
 
     Returns:
         carla.Transform for camera
@@ -294,20 +617,80 @@ def compute_drone_follow_transform(target_transform, height_offset=CAMERA_HEIGHT
     behind_x = -np.cos(yaw_rad) * follow_distance
     behind_y = -np.sin(yaw_rad) * follow_distance
 
+    # Perpendicular offset (right direction relative to target heading)
+    right_x = -np.sin(yaw_rad) * lateral_offset
+    right_y = np.cos(yaw_rad) * lateral_offset
+
     camera_location = carla.Location(
-        x=target_loc.x + behind_x,
-        y=target_loc.y + behind_y,
+        x=target_loc.x + behind_x + right_x,
+        y=target_loc.y + behind_y + right_y,
         z=target_loc.z + height_offset
     )
 
-    # Camera looks at target (same yaw as target, so we look forward along its path)
+    if lateral_offset != 0.0:
+        # Compute yaw from camera position to target for off-center view
+        dx = target_loc.x - camera_location.x
+        dy = target_loc.y - camera_location.y
+        camera_yaw = np.degrees(np.arctan2(dy, dx))
+    else:
+        # Camera looks at target (same yaw as target, so we look forward along its path)
+        camera_yaw = target_yaw
+
     camera_rotation = carla.Rotation(
         pitch=pitch,
-        yaw=target_yaw,
+        yaw=camera_yaw,
         roll=0.0
     )
 
     return carla.Transform(camera_location, camera_rotation)
+
+
+# =============================================================================
+# WEATHER HELPER
+# =============================================================================
+
+def set_weather(world, weather_params=None):
+    """
+    Apply weather parameters to the world.
+
+    Args:
+        world: CARLA world
+        weather_params: Dict of weather parameters, or None for ClearNoon default.
+            Supported keys: cloudiness, precipitation, precipitation_deposits,
+            wind_intensity, sun_azimuth_angle, sun_altitude_angle,
+            fog_density, fog_distance, wetness.
+
+    Returns:
+        Dict of the applied weather parameter values.
+    """
+    weather = carla.WeatherParameters.ClearNoon
+    if weather_params is not None:
+        weather = carla.WeatherParameters(
+            cloudiness=weather_params.get("cloudiness", 0),
+            precipitation=weather_params.get("precipitation", 0),
+            precipitation_deposits=weather_params.get("precipitation_deposits", 0),
+            wind_intensity=weather_params.get("wind_intensity", 0),
+            sun_azimuth_angle=weather_params.get("sun_azimuth_angle", 220),
+            sun_altitude_angle=weather_params.get("sun_altitude_angle", 60),
+            fog_density=weather_params.get("fog_density", 0),
+            fog_distance=weather_params.get("fog_distance", 0),
+            wetness=weather_params.get("wetness", 0),
+        )
+    world.set_weather(weather)
+
+    applied = {
+        "cloudiness": weather.cloudiness,
+        "precipitation": weather.precipitation,
+        "precipitation_deposits": weather.precipitation_deposits,
+        "wind_intensity": weather.wind_intensity,
+        "sun_azimuth_angle": weather.sun_azimuth_angle,
+        "sun_altitude_angle": weather.sun_altitude_angle,
+        "fog_density": weather.fog_density,
+        "fog_distance": weather.fog_distance,
+        "wetness": weather.wetness,
+    }
+    print(f"[INFO] Weather set: {applied}")
+    return applied
 
 
 # =============================================================================
@@ -501,9 +884,12 @@ def spawn_vehicles(world, bp_lib, spawn_points, num_distractors, seed):
     return target_actor, distractor_actors, spawned_info
 
 
-def spawn_vehicles_targeted(world, bp_lib, target_spawn_points, distractor_spawn_points, num_distractors, seed):
+def spawn_vehicles_targeted(world, bp_lib, target_spawn_points, distractor_spawn_points,
+                            num_distractors, seed, num_targets=1,
+                            distractor_colors=None, distractor_blueprints=None,
+                            distractor_use_target_color=False):
     """
-    Spawn target at a forward-facing spawn point, distractors at nearby points.
+    Spawn target(s) at forward-facing spawn points, distractors at nearby points.
 
     Args:
         world: CARLA world
@@ -512,9 +898,13 @@ def spawn_vehicles_targeted(world, bp_lib, target_spawn_points, distractor_spawn
         distractor_spawn_points: Nearby spawn points (for distractors)
         num_distractors: Number of distractor vehicles
         seed: Random seed
+        num_targets: Number of red sedan targets to spawn
+        distractor_colors: Override list of distractor colors (or None for default)
+        distractor_blueprints: Override list of blueprint IDs for distractors (or None for sedans)
+        distractor_use_target_color: If True, distractors use TARGET_COLOR
 
     Returns:
-        (target_actor, distractor_actors, spawned_info)
+        (target_actors_list, distractor_actors, spawned_info)
     """
     random.seed(seed)
 
@@ -524,34 +914,62 @@ def spawn_vehicles_targeted(world, bp_lib, target_spawn_points, distractor_spawn
 
     print(f"[INFO] Available sedan blueprints: {available_bps}")
 
+    # Resolve distractor blueprint list
+    if distractor_blueprints is not None:
+        available_dist_bps = []
+        for bp_id in distractor_blueprints:
+            try:
+                bp = bp_lib.find(bp_id)
+                if bp is not None:
+                    available_dist_bps.append(bp_id)
+            except Exception:
+                print(f"[WARN] Distractor blueprint {bp_id} not available, skipping")
+        if len(available_dist_bps) == 0:
+            print("[WARN] No distractor blueprints available, falling back to sedans")
+            available_dist_bps = available_bps
+    else:
+        available_dist_bps = available_bps
+
+    # Resolve distractor color list
+    colors_for_distractors = distractor_colors if distractor_colors is not None else DISTRACTOR_COLORS
+
     spawned_info = []
-    target_actor = None
+    target_actors = []
     distractor_actors = []
     used_spawn_locations = set()
 
-    # SPAWN TARGET at a forward-facing point (try first few until success)
-    target_bp_id = random.choice(available_bps)
-    target_bp = bp_lib.find(target_bp_id)
+    # SPAWN TARGET(S) at forward-facing points
+    target_spawn_idx = 0
+    for t_idx in range(num_targets):
+        target_bp_id = random.choice(available_bps)
+        target_bp = bp_lib.find(target_bp_id)
 
-    if target_bp.has_attribute('color'):
-        target_bp.set_attribute('color', TARGET_COLOR)
+        if target_bp.has_attribute('color'):
+            target_bp.set_attribute('color', TARGET_COLOR)
 
-    for target_spawn in target_spawn_points[:5]:  # Try first 5 forward points
-        target_actor = world.try_spawn_actor(target_bp, target_spawn)
-        if target_actor is not None:
-            used_spawn_locations.add((target_spawn.location.x, target_spawn.location.y))
-            break
+        spawned = False
+        for target_spawn in target_spawn_points[target_spawn_idx:target_spawn_idx + 5]:
+            actor = world.try_spawn_actor(target_bp, target_spawn)
+            if actor is not None:
+                used_spawn_locations.add((target_spawn.location.x, target_spawn.location.y))
+                target_actors.append(actor)
+                spawned_info.append({
+                    "actor_id": actor.id,
+                    "type_id": target_bp_id,
+                    "color": TARGET_COLOR,
+                    "is_target": True
+                })
+                print(f"[INFO] Spawned TARGET {t_idx + 1}/{num_targets}: {target_bp_id} "
+                      f"(id={actor.id}) color={TARGET_COLOR}")
+                spawned = True
+                target_spawn_idx += 1
+                break
+            target_spawn_idx += 1
 
-    if target_actor is None:
-        raise RuntimeError("Failed to spawn target vehicle at any forward spawn point!")
-
-    spawned_info.append({
-        "actor_id": target_actor.id,
-        "type_id": target_bp_id,
-        "color": TARGET_COLOR,
-        "is_target": True
-    })
-    print(f"[INFO] Spawned TARGET: {target_bp_id} (id={target_actor.id}) color={TARGET_COLOR}")
+        if not spawned:
+            if t_idx == 0:
+                raise RuntimeError("Failed to spawn primary target vehicle!")
+            print(f"[WARN] Failed to spawn target {t_idx + 1}/{num_targets}")
 
     # SPAWN DISTRACTORS at nearby points (avoiding target's spawn)
     distractor_color_idx = 0
@@ -570,10 +988,13 @@ def spawn_vehicles_targeted(world, bp_lib, target_spawn_points, distractor_spawn
         if loc_key in used_spawn_locations:
             continue
 
-        dist_bp_id = available_bps[spawned_count % len(available_bps)]
+        dist_bp_id = available_dist_bps[spawned_count % len(available_dist_bps)]
         dist_bp = bp_lib.find(dist_bp_id)
 
-        dist_color = DISTRACTOR_COLORS[distractor_color_idx % len(DISTRACTOR_COLORS)]
+        if distractor_use_target_color:
+            dist_color = TARGET_COLOR
+        else:
+            dist_color = colors_for_distractors[distractor_color_idx % len(colors_for_distractors)]
         distractor_color_idx += 1
 
         if dist_bp.has_attribute('color'):
@@ -592,8 +1013,8 @@ def spawn_vehicles_targeted(world, bp_lib, target_spawn_points, distractor_spawn
             print(f"[INFO] Spawned DISTRACTOR: {dist_bp_id} (id={actor.id}) color={dist_color}")
             spawned_count += 1
 
-    print(f"[INFO] Spawned {spawned_count} distractors")
-    return target_actor, distractor_actors, spawned_info
+    print(f"[INFO] Spawned {len(target_actors)} targets, {spawned_count} distractors")
+    return target_actors, distractor_actors, spawned_info
 
 
 # =============================================================================
@@ -602,7 +1023,11 @@ def spawn_vehicles_targeted(world, bp_lib, target_spawn_points, distractor_spawn
 
 def run_scenario(client, world, bp_lib, spawn_points, scenario_idx, scenario_dir,
                  num_frames, num_distractors, seed, camera_spawn_point, tm_port,
-                 follow_mode=False):
+                 follow_mode=False, weather_params=None, num_targets=1,
+                 distractor_colors=None, distractor_blueprints=None,
+                 distractor_use_target_color=False, camera_config=None,
+                 scenario_name=None, scenario_description=None,
+                 camera_mode=None):
     """
     Run a single scenario: spawn vehicles, capture frames, create video.
 
@@ -618,15 +1043,48 @@ def run_scenario(client, world, bp_lib, spawn_points, scenario_idx, scenario_dir
         seed: Random seed for this scenario
         camera_spawn_point: Spawn point for camera base position
         tm_port: Traffic manager port
-        follow_mode: If True, camera follows target (drone mode)
+        follow_mode: If True, camera follows target (drone mode). Ignored if camera_mode set.
+        weather_params: Dict of weather parameters or None for default
+        num_targets: Number of red sedan targets to spawn
+        distractor_colors: Override distractor color list
+        distractor_blueprints: Override distractor blueprint list
+        distractor_use_target_color: If True, distractors use TARGET_COLOR
+        camera_config: Dict with height_offset, follow_distance, pitch, lateral_offset,
+                       loose_follow_lag
+        scenario_name: Human-readable scenario name for metadata
+        scenario_description: Scenario description for metadata
+        camera_mode: "static", "follow", or "loose_follow". Overrides follow_mode.
 
     Returns:
         dict with scenario metadata
     """
+    # Resolve camera_mode from camera_mode or legacy follow_mode
+    if camera_mode is None:
+        camera_mode = "follow" if follow_mode else "static"
+
     spawned_actors = []
     camera = None
 
+    # Resolve camera config with defaults
+    cam_height_offset = CAMERA_HEIGHT_OFFSET
+    cam_follow_distance = 20.0
+    cam_pitch = CAMERA_PITCH
+    cam_lateral_offset = 0.0
+    cam_loose_follow_lag = 40  # frames (~4 seconds at 10 FPS)
+    if camera_config is not None:
+        cam_height_offset = camera_config.get("height_offset", CAMERA_HEIGHT_OFFSET)
+        cam_follow_distance = camera_config.get("follow_distance", 20.0)
+        cam_pitch = camera_config.get("pitch", CAMERA_PITCH)
+        cam_lateral_offset = camera_config.get("lateral_offset", 0.0)
+        cam_loose_follow_lag = camera_config.get("loose_follow_lag", 40)
+
+    # Scale max_dist based on camera height
+    max_dist = max(70.0, cam_height_offset * 5)
+
     try:
+        # Apply weather
+        applied_weather = set_weather(world, weather_params)
+
         # Create output directories for this scenario
         images_dir = os.path.join(scenario_dir, "images")
         video_dir = os.path.join(scenario_dir, "video")
@@ -635,10 +1093,20 @@ def run_scenario(client, world, bp_lib, spawn_points, scenario_idx, scenario_dir
 
         # Get spawn points IN FRONT of camera (along the road direction)
         # This ensures target spawns where camera can see it
+        # Try progressively wider search if no forward spawns found
         forward_spawns = get_forward_spawn_points(spawn_points, camera_spawn_point, min_dist=15.0, max_dist=50.0)
 
         if len(forward_spawns) < 1:
-            raise RuntimeError(f"No valid forward spawn points found for camera at {camera_spawn_point.location}")
+            print(f"[WARN] No forward spawns at default range, widening to 10-80m...")
+            forward_spawns = get_forward_spawn_points(spawn_points, camera_spawn_point, min_dist=10.0, max_dist=80.0)
+
+        if len(forward_spawns) < 1:
+            # Last resort: use nearest spawn points regardless of direction
+            print(f"[WARN] Still no forward spawns, using nearest spawn points as fallback")
+            forward_spawns = [sp for sp in get_spawn_region(spawn_points, camera_spawn_point.location, num_points=10)]
+
+        if len(forward_spawns) < 1:
+            raise RuntimeError(f"No valid spawn points found near camera at {camera_spawn_point.location}")
 
         print(f"[INFO] Scenario {scenario_idx}: Found {len(forward_spawns)} spawn points in front of camera")
 
@@ -646,12 +1114,18 @@ def run_scenario(client, world, bp_lib, spawn_points, scenario_idx, scenario_dir
         # Distractors spawn at nearby points (mix of forward and general nearby)
         spawn_region = get_spawn_region(spawn_points, camera_spawn_point.location, num_points=30)
 
-        # SPAWN VEHICLES - target at forward point, distractors nearby
-        target, distractors, vehicle_info = spawn_vehicles_targeted(
-            world, bp_lib, forward_spawns, spawn_region, num_distractors, seed
+        # SPAWN VEHICLES - target(s) at forward point, distractors nearby
+        targets, distractors, vehicle_info = spawn_vehicles_targeted(
+            world, bp_lib, forward_spawns, spawn_region, num_distractors, seed,
+            num_targets=num_targets,
+            distractor_colors=distractor_colors,
+            distractor_blueprints=distractor_blueprints,
+            distractor_use_target_color=distractor_use_target_color
         )
 
-        all_vehicles = [target] + distractors
+        # Primary follow target is the first one
+        target = targets[0]
+        all_vehicles = targets + distractors
         spawned_actors.extend(all_vehicles)
 
         # Build lookup for vehicle info by actor ID
@@ -667,6 +1141,8 @@ def run_scenario(client, world, bp_lib, spawn_points, scenario_idx, scenario_dir
         # CREATE CAMERA looking along road direction (where target is)
         camera_transform = create_camera_transform_from_spawn(
             camera_spawn_point,
+            height_offset=cam_height_offset,
+            pitch=cam_pitch,
             look_at_location=target_initial_location
         )
         camera_location = camera_transform.location
@@ -709,7 +1185,11 @@ def run_scenario(client, world, bp_lib, spawn_points, scenario_idx, scenario_dir
                 "fps": 10,
                 "seed": seed,
                 "scenario_id": scenario_idx,
-                "follow_mode": follow_mode,
+                "scenario_name": scenario_name,
+                "scenario_description": scenario_description,
+                "camera_mode": camera_mode,
+                "num_targets": num_targets,
+                "weather": applied_weather,
                 "camera": {
                     "initial_x": camera_location.x,
                     "initial_y": camera_location.y,
@@ -720,7 +1200,10 @@ def run_scenario(client, world, bp_lib, spawn_points, scenario_idx, scenario_dir
                     "w": CAMERA_WIDTH,
                     "h": CAMERA_HEIGHT,
                     "fov": CAMERA_FOV,
-                    "height_offset": CAMERA_HEIGHT_OFFSET
+                    "height_offset": cam_height_offset,
+                    "follow_distance": cam_follow_distance,
+                    "lateral_offset": cam_lateral_offset,
+                    "loose_follow_lag": cam_loose_follow_lag if camera_mode == "loose_follow" else None
                 }
             },
             "images": [],
@@ -728,15 +1211,57 @@ def run_scenario(client, world, bp_lib, spawn_points, scenario_idx, scenario_dir
         }
 
         # Main capture loop
-        mode_str = "FOLLOW MODE" if follow_mode else "STATIC MODE"
+        mode_str = camera_mode.upper().replace("_", " ")
         print(f"[INFO] Scenario {scenario_idx}: Starting capture of {num_frames} frames ({mode_str})...")
 
+        # Position history for loose_follow (lagged tracking)
+        position_history = []
+
         for frame_idx in range(num_frames):
-            # In follow mode, update camera position BEFORE tick so it renders from new position
-            if follow_mode and target.is_alive:
+            # Update camera position based on camera_mode
+            if camera_mode == "follow" and target.is_alive:
+                # Strict follow: camera locked behind target every frame
                 target_transform = target.get_transform()
-                camera_transform = compute_drone_follow_transform(target_transform)
+                camera_transform = compute_drone_follow_transform(
+                    target_transform,
+                    height_offset=cam_height_offset,
+                    follow_distance=cam_follow_distance,
+                    pitch=cam_pitch,
+                    lateral_offset=cam_lateral_offset
+                )
                 camera.set_transform(camera_transform)
+
+            elif camera_mode == "loose_follow" and target.is_alive:
+                # Lagged follow: camera goes where target WAS N frames ago
+                target_transform = target.get_transform()
+                position_history.append(carla.Transform(
+                    carla.Location(
+                        x=target_transform.location.x,
+                        y=target_transform.location.y,
+                        z=target_transform.location.z
+                    ),
+                    carla.Rotation(
+                        pitch=target_transform.rotation.pitch,
+                        yaw=target_transform.rotation.yaw,
+                        roll=target_transform.rotation.roll
+                    )
+                ))
+
+                if len(position_history) > cam_loose_follow_lag:
+                    lagged_transform = position_history[-cam_loose_follow_lag]
+                else:
+                    lagged_transform = position_history[0]
+
+                camera_transform = compute_drone_follow_transform(
+                    lagged_transform,
+                    height_offset=cam_height_offset,
+                    follow_distance=cam_follow_distance,
+                    pitch=cam_pitch,
+                    lateral_offset=cam_lateral_offset
+                )
+                camera.set_transform(camera_transform)
+
+            # camera_mode == "static": no camera update, stays at initial position
 
             world.tick()
 
@@ -780,7 +1305,7 @@ def run_scenario(client, world, bp_lib, spawn_points, scenario_idx, scenario_dir
 
                 bbox_result = compute_2d_bbox(
                     actor, current_camera_transform, K, world_2_camera,
-                    CAMERA_WIDTH, CAMERA_HEIGHT, max_dist=70.0
+                    CAMERA_WIDTH, CAMERA_HEIGHT, max_dist=max_dist
                 )
 
                 # Only annotate if visible (valid bbox)
@@ -844,17 +1369,39 @@ def run_scenario(client, world, bp_lib, spawn_points, scenario_idx, scenario_dir
         print(f"[INFO] Scenario {scenario_idx}: Cleaned up {len(spawned_actors)} actors")
 
 
+def _setup_sync_mode(world, client, tm_port):
+    """Enable synchronous mode on world and traffic manager. Returns (original_settings, tm_port)."""
+    original_settings = world.get_settings()
+
+    settings = world.get_settings()
+    settings.synchronous_mode = True
+    settings.fixed_delta_seconds = 0.1  # 10 FPS
+    world.apply_settings(settings)
+    print("[INFO] Synchronous mode ENABLED (fixed_delta=0.1s, 10 FPS)")
+
+    tm = client.get_trafficmanager(tm_port)
+    tm.set_synchronous_mode(True)
+    resolved_port = tm.get_port()
+    print(f"[INFO] TrafficManager synchronous mode ENABLED (port {resolved_port})")
+
+    return original_settings, resolved_port
+
+
 def main():
     parser = argparse.ArgumentParser(description="CARLA Red Sedan Multi-Scenario Dataset Generator")
-    parser.add_argument("--host", default="10.52.143.241", help="CARLA server host")
+    parser.add_argument("--host", default="10.52.141.10", help="CARLA server host")
     parser.add_argument("--port", type=int, default=2000, help="CARLA server port")
-    parser.add_argument("--out_dir", default="dataset/carla_follow_scenarios", help="Output directory")
-    parser.add_argument("--num_frames", type=int, default=800, help="Number of frames per scenario")
+    parser.add_argument("--out_dir", default="dataset/carla_eval", help="Output directory")
+    parser.add_argument("--num_frames", type=int, default=1000, help="Number of frames per scenario")
     parser.add_argument("--num_scenarios", type=int, default=1, help="Number of scenarios to generate")
     parser.add_argument("--num_distractors", type=int, default=10, help="Number of distractor vehicles")
     parser.add_argument("--seed", type=int, default=13, help="Base random seed for determinism")
     parser.add_argument("--tm_port", type=int, default=8000, help="Traffic manager port (change if 8000 is busy)")
     parser.add_argument("--follow_mode", action="store_true", help="Camera follows target (drone mode)")
+    parser.add_argument("--eval_mode", action="store_true",
+                        help="Run all 17 evaluation scenarios from EVAL_SCENARIO_CONFIGS")
+    parser.add_argument("--resume_from", type=int, default=1,
+                        help="Resume eval_mode from this scenario_id (skips earlier ones)")
     args = parser.parse_args()
 
     # Set global random seed for determinism
@@ -881,100 +1428,200 @@ def main():
 
         print(f"[INFO] Connected. Map: {map_name}, {len(spawn_points)} spawn points")
 
-        if len(spawn_points) < args.num_scenarios:
-            print(f"[WARN] Only {len(spawn_points)} spawn points, reducing scenarios")
-            args.num_scenarios = len(spawn_points)
-
         # =================================================================
         # SETUP SYNCHRONOUS MODE
         # =================================================================
-        original_settings = world.get_settings()
+        original_settings, tm_port = _setup_sync_mode(world, client, args.tm_port)
 
-        settings = world.get_settings()
-        settings.synchronous_mode = True
-        settings.fixed_delta_seconds = 0.1  # 10 FPS
-        world.apply_settings(settings)
+        if args.eval_mode:
+            # =============================================================
+            # EVAL MODE: Run all 17 evaluation scenarios
+            # =============================================================
+            eval_out_dir = os.path.join(args.out_dir, "eval_scenarios")
+            os.makedirs(eval_out_dir, exist_ok=True)
 
-        print("[INFO] Synchronous mode ENABLED (fixed_delta=0.1s, 10 FPS)")
+            # Group scenarios by map to minimize load_world calls
+            from collections import defaultdict
+            map_groups = defaultdict(list)
+            for cfg in EVAL_SCENARIO_CONFIGS:
+                map_groups[cfg["map"]].append(cfg)
 
-        # Setup Traffic Manager in synchronous mode
-        tm = client.get_trafficmanager(args.tm_port)
-        tm.set_synchronous_mode(True)
-        tm_port = tm.get_port()
-        print(f"[INFO] TrafficManager synchronous mode ENABLED (port {tm_port})")
+            # Process current map first, then others
+            current_map_short = map_name.split("/")[-1]  # Handle "Carla/Maps/Town10HD_Opt" format
+            ordered_maps = []
+            for m in map_groups:
+                if m in current_map_short or current_map_short in m:
+                    ordered_maps.insert(0, m)
+                else:
+                    ordered_maps.append(m)
 
-        # =================================================================
-        # SELECT RANDOM SPAWN POINTS FOR CAMERA POSITIONS
-        # Use different spawn points for each scenario to get diverse views
-        # =================================================================
-        spawn_points_copy = list(spawn_points)
-        random.shuffle(spawn_points_copy)
-        camera_spawn_points = spawn_points_copy[:args.num_scenarios]
+            all_scenarios_meta = []
+            total_scenarios = len(EVAL_SCENARIO_CONFIGS)
+            completed = 0
 
-        print(f"[INFO] Will generate {args.num_scenarios} scenarios with {args.num_frames} frames each")
+            for target_map in ordered_maps:
+                configs = map_groups[target_map]
 
-        # Track all scenario metadata
-        all_scenarios_meta = []
+                # Load map if needed
+                current_map = world.get_map().name
+                if target_map not in current_map:
+                    print(f"\n[INFO] Loading map: {target_map}...")
+                    client.load_world(target_map)
+                    world = client.get_world()
+                    bp_lib = world.get_blueprint_library()
+                    spawn_points = world.get_map().get_spawn_points()
+                    print(f"[INFO] Map loaded: {world.get_map().name}, {len(spawn_points)} spawn points")
 
-        # =================================================================
-        # RUN EACH SCENARIO
-        # =================================================================
-        for scenario_idx in range(1, args.num_scenarios + 1):
+                    # Re-apply sync mode after map load
+                    original_settings, tm_port = _setup_sync_mode(world, client, args.tm_port)
+
+                for cfg in configs:
+                    completed += 1
+                    scenario_name = cfg["name"]
+
+                    # Skip scenarios before resume_from
+                    if cfg["scenario_id"] < args.resume_from:
+                        print(f"[INFO] Skipping scenario {cfg['scenario_id']}: {scenario_name} (resume_from={args.resume_from})")
+                        continue
+
+                    # Skip if gt.json already exists (already completed)
+                    existing_gt = os.path.join(eval_out_dir, scenario_name, "gt.json")
+                    if os.path.exists(existing_gt):
+                        print(f"[INFO] Skipping scenario {cfg['scenario_id']}: {scenario_name} (gt.json exists)")
+                        continue
+
+                    print(f"\n{'='*60}")
+                    print(f"[INFO] EVAL SCENARIO {completed}/{total_scenarios}: {scenario_name}")
+                    print(f"[INFO] {cfg['description']}")
+                    print(f"{'='*60}")
+
+                    # Select camera spawn point deterministically from scenario seed
+                    random.seed(cfg["seed"])
+                    spawn_points_copy = list(spawn_points)
+                    random.shuffle(spawn_points_copy)
+                    camera_spawn = spawn_points_copy[0]
+
+                    # Scenario output directory
+                    scenario_dir = os.path.join(eval_out_dir, scenario_name)
+                    os.makedirs(scenario_dir, exist_ok=True)
+
+                    scenario_meta = run_scenario(
+                        client=client,
+                        world=world,
+                        bp_lib=bp_lib,
+                        spawn_points=spawn_points,
+                        scenario_idx=cfg["scenario_id"],
+                        scenario_dir=scenario_dir,
+                        num_frames=cfg["num_frames"],
+                        num_distractors=cfg["num_distractors"],
+                        seed=cfg["seed"],
+                        camera_spawn_point=camera_spawn,
+                        tm_port=tm_port,
+                        camera_mode=cfg["camera_mode"],
+                        weather_params=cfg["weather"],
+                        num_targets=cfg["num_targets"],
+                        distractor_colors=cfg["distractor_colors"],
+                        distractor_blueprints=cfg["distractor_blueprints"],
+                        distractor_use_target_color=cfg["distractor_use_target_color"],
+                        camera_config=cfg["camera"],
+                        scenario_name=scenario_name,
+                        scenario_description=cfg["description"]
+                    )
+
+                    all_scenarios_meta.append(scenario_meta)
+
+                    # Brief pause between scenarios
+                    for _ in range(10):
+                        world.tick()
+
+            # Save master index for eval scenarios
+            master_index = {
+                "mode": "eval",
+                "num_scenarios": total_scenarios,
+                "scenarios": all_scenarios_meta
+            }
+
+            master_path = os.path.join(eval_out_dir, "master_index.json")
+            with open(master_path, 'w') as f:
+                json.dump(master_index, f, indent=2)
+
             print(f"\n{'='*60}")
-            print(f"[INFO] STARTING SCENARIO {scenario_idx}/{args.num_scenarios}")
+            print(f"[INFO] ALL {total_scenarios} EVAL SCENARIOS COMPLETE!")
+            print(f"[INFO] Master index saved to {master_path}")
             print(f"{'='*60}")
 
-            # Get camera spawn point for this scenario
-            camera_spawn = camera_spawn_points[scenario_idx - 1]
+        else:
+            # =============================================================
+            # STANDARD MODE: Original behavior (unchanged)
+            # =============================================================
+            if len(spawn_points) < args.num_scenarios:
+                print(f"[WARN] Only {len(spawn_points)} spawn points, reducing scenarios")
+                args.num_scenarios = len(spawn_points)
 
-            # Create scenario-specific output directory
-            scenario_dir = os.path.join(args.out_dir, f"scenario_{scenario_idx:03d}")
-            os.makedirs(scenario_dir, exist_ok=True)
+            # Select random spawn points for camera positions
+            spawn_points_copy = list(spawn_points)
+            random.shuffle(spawn_points_copy)
+            camera_spawn_points = spawn_points_copy[:args.num_scenarios]
 
-            # Use different seed for each scenario (deterministic but varied)
-            scenario_seed = args.seed + scenario_idx * 1000
+            print(f"[INFO] Will generate {args.num_scenarios} scenarios with {args.num_frames} frames each")
 
-            # Run the scenario (camera will be pointed at target after spawning)
-            scenario_meta = run_scenario(
-                client=client,
-                world=world,
-                bp_lib=bp_lib,
-                spawn_points=spawn_points,
-                scenario_idx=scenario_idx,
-                scenario_dir=scenario_dir,
-                num_frames=args.num_frames,
-                num_distractors=args.num_distractors,
-                seed=scenario_seed,
-                camera_spawn_point=camera_spawn,
-                tm_port=tm_port,
-                follow_mode=args.follow_mode
-            )
+            # Track all scenario metadata
+            all_scenarios_meta = []
 
-            all_scenarios_meta.append(scenario_meta)
+            for scenario_idx in range(1, args.num_scenarios + 1):
+                print(f"\n{'='*60}")
+                print(f"[INFO] STARTING SCENARIO {scenario_idx}/{args.num_scenarios}")
+                print(f"{'='*60}")
 
-            # Brief pause between scenarios
-            for _ in range(10):
-                world.tick()
+                # Get camera spawn point for this scenario
+                camera_spawn = camera_spawn_points[scenario_idx - 1]
 
-        # =================================================================
-        # SAVE MASTER INDEX
-        # =================================================================
-        master_index = {
-            "num_scenarios": args.num_scenarios,
-            "frames_per_scenario": args.num_frames,
-            "base_seed": args.seed,
-            "map": map_name,
-            "scenarios": all_scenarios_meta
-        }
+                # Create scenario-specific output directory
+                scenario_dir = os.path.join(args.out_dir, f"scenario_{scenario_idx:03d}")
+                os.makedirs(scenario_dir, exist_ok=True)
 
-        master_path = os.path.join(args.out_dir, "master_index.json")
-        with open(master_path, 'w') as f:
-            json.dump(master_index, f, indent=2)
+                # Use different seed for each scenario (deterministic but varied)
+                scenario_seed = args.seed + scenario_idx * 1000
 
-        print(f"\n{'='*60}")
-        print(f"[INFO] ALL SCENARIOS COMPLETE!")
-        print(f"[INFO] Master index saved to {master_path}")
-        print(f"{'='*60}")
+                # Run the scenario (camera will be pointed at target after spawning)
+                scenario_meta = run_scenario(
+                    client=client,
+                    world=world,
+                    bp_lib=bp_lib,
+                    spawn_points=spawn_points,
+                    scenario_idx=scenario_idx,
+                    scenario_dir=scenario_dir,
+                    num_frames=args.num_frames,
+                    num_distractors=args.num_distractors,
+                    seed=scenario_seed,
+                    camera_spawn_point=camera_spawn,
+                    tm_port=tm_port,
+                    follow_mode=args.follow_mode
+                )
+
+                all_scenarios_meta.append(scenario_meta)
+
+                # Brief pause between scenarios
+                for _ in range(10):
+                    world.tick()
+
+            # Save master index
+            master_index = {
+                "num_scenarios": args.num_scenarios,
+                "frames_per_scenario": args.num_frames,
+                "base_seed": args.seed,
+                "map": map_name,
+                "scenarios": all_scenarios_meta
+            }
+
+            master_path = os.path.join(args.out_dir, "master_index.json")
+            with open(master_path, 'w') as f:
+                json.dump(master_index, f, indent=2)
+
+            print(f"\n{'='*60}")
+            print(f"[INFO] ALL SCENARIOS COMPLETE!")
+            print(f"[INFO] Master index saved to {master_path}")
+            print(f"{'='*60}")
 
     except Exception as e:
         print(f"[ERROR] {e}")

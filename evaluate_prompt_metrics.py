@@ -3,17 +3,21 @@
 Prompt-Compliance Metrics Evaluator for Tracking Benchmarks
 
 Computes:
-- Prompt Precision (PP): Fraction of predicted boxes matching prompt-valid GT (IoU >= threshold)
-- Prompt Recall (PR): Fraction of prompt-valid GT boxes matched by predictions (IoU >= threshold)
+- Semantic Precision (SP): Fraction of predicted boxes matching prompt-valid GT (IoU >= threshold)
+- Semantic Recall (SR): Fraction of prompt-valid GT boxes matched by predictions (IoU >= threshold)
+- Prompt Coverage Ratio (PCR): Fraction of frames where the prompt-valid target is correctly tracked
 - Semantic ID Switches (SID): Count of track switches from prompt-valid to prompt-invalid GT
- 
+- Distractor Confusion Rate (DCR): Fraction of predictions matched to prompt-invalid GT
+
+Matching uses IoU >= threshold with Hungarian assignment.
+
 Input:
 - gt.json: Ground truth from CARLA dataset generator
 - predictions.txt: MOT format (frame,track_id,x,y,w,h,score,-1,-1,-1)
 
 The "prompt-valid" set is configurable:
 - Default: is_target == True (single red sedan)
-- Extended: color == "255,0,0" AND type_id in sedan list (all red sedans)
+- Extended: color == "180,30,30" AND type_id in sedan list (all red sedans)
 """
 
 import argparse
@@ -21,6 +25,9 @@ import json
 import os
 from collections import defaultdict
 from typing import Dict, List, Set, Tuple, Optional
+
+import numpy as np
+from scipy.optimize import linear_sum_assignment
 
 
 # Sedan type IDs for extended prompt matching
@@ -132,7 +139,7 @@ def is_prompt_valid(annotation: dict, mode: str = "single_target") -> bool:
         # Check if color is red AND type is a sedan
         color = annotation.get("color", "")
         type_id = annotation.get("type_id", "")
-        return color == "255,0,0" and type_id in SEDAN_TYPE_IDS
+        return color == "180,30,30" and type_id in SEDAN_TYPE_IDS
 
     else:
         raise ValueError(f"Unknown mode: {mode}")
@@ -152,52 +159,68 @@ def match_predictions_to_gt(
     iou_threshold: float = 0.5
 ) -> List[Tuple[dict, Optional[dict], float]]:
     """
-    Match predictions to GT using greedy IoU matching.
+    Match predictions to GT using Hungarian (optimal) matching on IoU.
+
+    Builds an IoU cost matrix and uses linear_sum_assignment to find the
+    globally optimal one-to-one assignment, avoiding the mismatch artifacts
+    that greedy matching can produce in multi-target scenarios.
 
     Returns:
         List of (prediction, matched_gt_or_None, iou)
     """
+    if not predictions or not gt_annotations:
+        return [(pred, None, 0.0) for pred in predictions]
+
+    n_pred = len(predictions)
+    n_gt = len(gt_annotations)
+
+    # Build IoU matrix (n_pred x n_gt)
+    iou_matrix = np.zeros((n_pred, n_gt), dtype=np.float64)
+    for i, pred in enumerate(predictions):
+        for j, gt in enumerate(gt_annotations):
+            iou_matrix[i, j] = compute_iou(pred["bbox_xyxy"], gt["bbox_xyxy"])
+
+    # Hungarian algorithm minimises cost, so use (1 - IoU) as cost
+    cost_matrix = 1.0 - iou_matrix
+    pred_indices, gt_indices = linear_sum_assignment(cost_matrix)
+
+    # Record assigned pairs that meet the IoU threshold
+    pred_to_gt: Dict[int, Tuple[int, float]] = {}
+    for pi, gi in zip(pred_indices, gt_indices):
+        iou = iou_matrix[pi, gi]
+        if iou >= iou_threshold:
+            pred_to_gt[pi] = (gi, iou)
+
+    # Build result list covering every prediction
     matches = []
-    used_gt = set()
-
-    # Sort predictions by score (highest first)
-    sorted_preds = sorted(predictions, key=lambda p: p["score"], reverse=True)
-
-    for pred in sorted_preds:
-        best_iou = 0.0
-        best_gt = None
-        best_gt_idx = None
-
-        for idx, gt in enumerate(gt_annotations):
-            if idx in used_gt:
-                continue
-
-            iou = compute_iou(pred["bbox_xyxy"], gt["bbox_xyxy"])
-            if iou > best_iou:
-                best_iou = iou
-                best_gt = gt
-                best_gt_idx = idx
-
-        if best_iou >= iou_threshold and best_gt_idx is not None:
-            used_gt.add(best_gt_idx)
-            matches.append((pred, best_gt, best_iou))
+    for i, pred in enumerate(predictions):
+        if i in pred_to_gt:
+            gi, iou = pred_to_gt[i]
+            matches.append((pred, gt_annotations[gi], iou))
         else:
+            # Best IoU for reporting, even though unmatched
+            best_iou = float(iou_matrix[i].max()) if n_gt > 0 else 0.0
             matches.append((pred, None, best_iou))
 
     return matches
 
 
-def compute_prompt_precision_recall(
+def compute_metrics(
     gt_data: dict,
     predictions: Dict[int, List[dict]],
     iou_threshold: float = 0.5,
     mode: str = "single_target"
-) -> Tuple[float, float, dict]:
+) -> Tuple[float, float, float, float, dict]:
     """
-    Compute Prompt Precision and Prompt Recall.
+    Compute Semantic Precision, Semantic Recall, Prompt Coverage Ratio,
+    and Distractor Confusion Rate.
 
-    Prompt Precision (PP): fraction of predicted boxes that match any prompt-valid GT
-    Prompt Recall (PR): fraction of prompt-valid GT boxes matched by any prediction
+    SP:  fraction of predicted boxes that match any prompt-valid GT
+    SR:  fraction of prompt-valid GT boxes matched by any prediction
+    PCR: tracking reliability over time
+         single target: frames where target matched / frames where target visible
+         multi-target: total matched valid GT / total visible valid GT across frames
+    DCR: fraction of predictions that matched a distractor GT
 
     Args:
         gt_data: Ground truth data
@@ -206,14 +229,19 @@ def compute_prompt_precision_recall(
         mode: Prompt validity mode
 
     Returns:
-        (precision, recall, detailed_stats)
+        (sp, sr, pcr, dcr, detailed_stats)
     """
     gt_by_frame = build_gt_by_frame(gt_data)
 
     total_predictions = 0
     predictions_matching_valid = 0
+    predictions_matching_distractor = 0
     total_valid_gt = 0
     valid_gt_matched = 0
+
+    # PCR accumulators
+    frames_with_valid_gt = 0
+    frames_where_valid_matched = 0
 
     # For detailed analysis
     frame_stats = []
@@ -226,7 +254,6 @@ def compute_prompt_precision_recall(
 
         # Identify prompt-valid GT in this frame
         valid_gt = [gt for gt in frame_gt if is_prompt_valid(gt, mode)]
-        invalid_gt = [gt for gt in frame_gt if not is_prompt_valid(gt, mode)]
 
         total_valid_gt += len(valid_gt)
         total_predictions += len(frame_preds)
@@ -234,21 +261,28 @@ def compute_prompt_precision_recall(
         # Match predictions to ALL GT
         matches = match_predictions_to_gt(frame_preds, frame_gt, iou_threshold)
 
-        frame_valid_matched = 0
         frame_preds_matching_valid = 0
-
+        frame_preds_matching_distractor = 0
         matched_valid_gt_ids = set()
 
-        for pred, matched_gt, iou in matches:
+        for _, matched_gt, _ in matches:
             if matched_gt is not None:
                 if is_prompt_valid(matched_gt, mode):
                     frame_preds_matching_valid += 1
                     matched_valid_gt_ids.add(matched_gt["gt_id"])
+                else:
+                    frame_preds_matching_distractor += 1
 
-        # Count how many valid GT were matched
         frame_valid_matched = len(matched_valid_gt_ids)
 
+        # PCR: track per-frame coverage
+        if len(valid_gt) > 0:
+            frames_with_valid_gt += 1
+            if frame_valid_matched > 0:
+                frames_where_valid_matched += 1
+
         predictions_matching_valid += frame_preds_matching_valid
+        predictions_matching_distractor += frame_preds_matching_distractor
         valid_gt_matched += frame_valid_matched
 
         frame_stats.append({
@@ -256,22 +290,33 @@ def compute_prompt_precision_recall(
             "num_predictions": len(frame_preds),
             "num_valid_gt": len(valid_gt),
             "preds_matching_valid": frame_preds_matching_valid,
+            "preds_matching_distractor": frame_preds_matching_distractor,
             "valid_gt_matched": frame_valid_matched
         })
 
     # Compute metrics
-    precision = predictions_matching_valid / total_predictions if total_predictions > 0 else 0.0
-    recall = valid_gt_matched / total_valid_gt if total_valid_gt > 0 else 0.0
+    sp = predictions_matching_valid / total_predictions if total_predictions > 0 else 0.0
+    sr = valid_gt_matched / total_valid_gt if total_valid_gt > 0 else 0.0
+    dcr = predictions_matching_distractor / total_predictions if total_predictions > 0 else 0.0
+
+    # PCR: single-target uses binary per-frame, multi-target uses matched/visible ratio
+    if mode == "single_target":
+        pcr = frames_where_valid_matched / frames_with_valid_gt if frames_with_valid_gt > 0 else 0.0
+    else:
+        pcr = valid_gt_matched / total_valid_gt if total_valid_gt > 0 else 0.0
 
     stats = {
         "total_predictions": total_predictions,
         "predictions_matching_valid": predictions_matching_valid,
+        "predictions_matching_distractor": predictions_matching_distractor,
         "total_valid_gt": total_valid_gt,
         "valid_gt_matched": valid_gt_matched,
+        "frames_with_valid_gt": frames_with_valid_gt,
+        "frames_where_valid_matched": frames_where_valid_matched,
         "frame_stats": frame_stats
     }
 
-    return precision, recall, stats
+    return sp, sr, pcr, dcr, stats
 
 
 def compute_semantic_id_switches(
@@ -374,7 +419,7 @@ def main():
     print()
 
     # Compute metrics
-    precision, recall, pr_stats = compute_prompt_precision_recall(
+    sp, sr, pcr, dcr, stats = compute_metrics(
         gt_data, predictions, args.iou_threshold, args.mode
     )
 
@@ -389,13 +434,17 @@ def main():
     print(f"Prompt: \"{gt_data['meta']['prompt']}\"")
     print(f"Mode: {args.mode}")
     print()
-    print(f"Prompt Precision (PP): {precision:.4f}")
-    print(f"  - {pr_stats['predictions_matching_valid']} / {pr_stats['total_predictions']} "
+    print(f"Semantic Precision (SP): {sp:.4f}")
+    print(f"  - {stats['predictions_matching_valid']} / {stats['total_predictions']} "
           f"predictions match prompt-valid GT")
     print()
-    print(f"Prompt Recall (PR): {recall:.4f}")
-    print(f"  - {pr_stats['valid_gt_matched']} / {pr_stats['total_valid_gt']} "
+    print(f"Semantic Recall (SR): {sr:.4f}")
+    print(f"  - {stats['valid_gt_matched']} / {stats['total_valid_gt']} "
           f"prompt-valid GT matched by predictions")
+    print()
+    print(f"Prompt Coverage Ratio (PCR): {pcr:.4f}")
+    print(f"  - {stats['frames_where_valid_matched']} / {stats['frames_with_valid_gt']} "
+          f"frames with valid target correctly tracked")
     print()
     print(f"Semantic ID Switches (SID): {sid_count}")
     if sid_events:
@@ -406,12 +455,16 @@ def main():
                   f"({direction}, GT {event['from_gt_id']} -> {event['to_gt_id']})")
         if len(sid_events) > 10:
             print(f"    ... and {len(sid_events) - 10} more")
+    print()
+    print(f"Distractor Confusion Rate (DCR): {dcr:.4f}")
+    print(f"  - {stats['predictions_matching_distractor']} / {stats['total_predictions']} "
+          f"predictions matched a distractor instead of the target")
     print("=" * 60)
 
     # Verbose output
     if args.verbose:
         print("\nPer-frame statistics:")
-        for fs in pr_stats["frame_stats"]:
+        for fs in stats["frame_stats"]:
             print(f"  Frame {fs['frame_id']}: "
                   f"preds={fs['num_predictions']}, "
                   f"valid_gt={fs['num_valid_gt']}, "
@@ -429,12 +482,14 @@ def main():
                 "prompt": gt_data["meta"]["prompt"]
             },
             "metrics": {
-                "prompt_precision": precision,
-                "prompt_recall": recall,
+                "semantic_precision": sp,
+                "semantic_recall": sr,
+                "prompt_coverage_ratio": pcr,
+                "distractor_confusion_rate": dcr,
                 "semantic_id_switches": sid_count
             },
             "details": {
-                "precision_recall_stats": pr_stats,
+                "stats": stats,
                 "switch_events": sid_events
             }
         }
